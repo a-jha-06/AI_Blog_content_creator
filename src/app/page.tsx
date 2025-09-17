@@ -36,13 +36,11 @@ export default function Home() {
       const decoder = new TextDecoder();
 
       if (!reader) return;
-      let fullText = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
 
         if (step === "outline") setOutline((prev) => (prev || "") + chunk);
         else setArticle((prev) => (prev || "") + chunk);
@@ -98,7 +96,7 @@ export default function Home() {
                 onChange={() => setSeo(!seo)}
                 className="dashboard-checkbox"
               />
-               <span> SEO Optimized</span>
+              SEO Optimized
             </label>
           </div>
 
@@ -155,9 +153,11 @@ export default function Home() {
           )}
         </div>
       </motion.div>
-      <div className="dashboard-footer">
-  © {new Date().getFullYear()} AS Consultants. All rights reserved.
-</div>
+
+      {/* Footer */}
+      <footer className="dashboard-footer">
+        © {new Date().getFullYear()} Amisha Jha. All rights reserved.
+      </footer>
     </div>
   );
 }

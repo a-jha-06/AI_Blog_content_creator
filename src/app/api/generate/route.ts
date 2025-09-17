@@ -1,8 +1,18 @@
+// src/app/api/generate/route.ts
 import { NextResponse } from "next/server";
+
+interface GenerateRequest {
+  step: "outline" | "article";
+  topic: string;
+  wordCount: string;
+  tone: string;
+  seo: boolean;
+  outline?: string | null;
+}
 
 export async function POST(req: Request) {
   try {
-    const { step, topic, wordCount, tone, seo, outline } = await req.json();
+    const { step, topic, wordCount, tone, seo, outline } = (await req.json()) as GenerateRequest;
 
     if (!topic) {
       return NextResponse.json({ error: "Missing topic" }, { status: 400 });
@@ -23,7 +33,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.OPENAI_API_KEY;
 
-    // If no API key provided, fallback to mock
+    // If no API key, fallback to mock response
     if (!apiKey) {
       console.warn("⚠️ No API key found. Using mock response.");
       return mockResponse(step, topic);
@@ -48,7 +58,7 @@ export async function POST(req: Request) {
       const errorData = await response.json();
       console.error("❌ OpenAI API Error:", errorData);
 
-      // If quota is exceeded, return mock response
+      // If quota exhausted, return mock response
       if (errorData?.error?.code === "insufficient_quota") {
         console.warn("⚠️ Quota exhausted. Using mock response.");
         return mockResponse(step, topic);
@@ -85,10 +95,10 @@ export async function POST(req: Request) {
                 const jsonStr = line.replace("data: ", "").trim();
                 if (jsonStr === "[DONE]") return;
                 try {
-                  const parsed = JSON.parse(jsonStr);
+                  const parsed = JSON.parse(jsonStr) as { choices?: { delta?: { content?: string } }[] };
                   const token = parsed.choices?.[0]?.delta?.content || "";
                   controller.enqueue(encoder.encode(token));
-                } catch (e) {
+                } catch (_err) {
                   console.error("JSON Parse Error:", jsonStr);
                 }
               }
@@ -104,16 +114,17 @@ export async function POST(req: Request) {
         "Transfer-Encoding": "chunked",
       },
     });
-  } catch (err: any) {
-    console.error("🔥 API Exception:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("🔥 API Exception:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 /**
  * Returns a fake AI response (for local testing / no credits scenario)
  */
-function mockResponse(step: string, topic: string) {
+function mockResponse(step: "outline" | "article", topic: string) {
   const mockText =
     step === "outline"
       ? `Outline for "${topic}":\n\n1. Introduction\n2. Main Benefits\n   - Benefit 1\n   - Benefit 2\n3. Practical Tips\n4. Conclusion`
